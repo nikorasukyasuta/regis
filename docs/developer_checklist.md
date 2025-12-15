@@ -3,7 +3,7 @@ Full‑Stack Local Application with SQLite, Excel Transition, and Email Automati
 
 🟢 Milestone 1 — Foundation & Architecture
 📐 Architecture & Planning
-[ ] Finalize application scope and non‑goals
+[x] Finalize application scope and non‑goals
 
 [ ] Define supported user roles and responsibilities
 
