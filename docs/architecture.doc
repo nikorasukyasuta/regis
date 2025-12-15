@@ -1,0 +1,413 @@
+Architecture document v1 for centralized SQLite with hub sync
+Scope and goals
+This document specifies the future-state architecture for a locally hosted full-stack application backed by SQLite, supporting:
+
+Two offices operating primarily on their local LANs
+
+Three hybrid work-from-home employees who may work outside office hours
+
+Excel import/export during transition (Excel is not the system of record)
+
+Email ingestion/parsing into structured data with staging + validation
+
+Auditing and traceability for all changes
+
+Eventual consistency across offices with reliable convergence
+
+Non-goals:
+
+Real-time collaborative editing across offices
+
+Sharing a SQLite database file on a network drive
+
+Complex peer-to-peer mesh replication
+
+Availability and operating assumptions
+Hub location: Rivers Edge office
+
+Hub availability targets:
+
+99% uptime during work hours
+
+95% uptime during non-work hours
+
+Office-local operations must continue during hub downtime (events queue locally and sync later).
+
+Hybrid employees may connect to either office node as desired and should still function when the hub is unavailable.
+
+Topology and components
+Office Node A and Office Node B
+Each office runs an identical “node”:
+
+Web UI + API server
+
+Local SQLite DB (node-local source of truth while disconnected)
+
+Background jobs
+
+email ingestion
+
+Excel import/export
+
+scheduled exports and reconciliations
+
+Replication agent
+
+pushes local change events to the hub
+
+pulls remote events from the hub
+
+replays remote events into SQLite
+
+Sync Hub at Rivers Edge
+A hub service provides:
+
+Durable event store (append-only)
+
+Delivery tracking per node
+
+last delivered cursor
+
+last acknowledged cursor
+
+Pull and push endpoints (batch)
+
+Operational visibility
+
+backlog by node
+
+last sync times
+
+error/retry counts
+
+Hybrid WFH access
+Hybrid users connect to either Office Node (A or B) via secure remote access.
+
+Their changes are written to the node they’re connected to, then replicated through the hub.
+
+Diagrams
+Component diagram
+mermaid
+flowchart LR
+  subgraph Office1[Office 1 LAN]
+    AUsers[Office 1 users\nBrowser UI] --> ANode[Office Node A\nWeb+API+Jobs]
+    ANode --> ADB[(SQLite DB A)]
+    ANode <--> ARep[Replication agent A]
+  end
+
+  subgraph Office2[Office 2 LAN]
+    BUsers[Office 2 users\nBrowser UI] --> BNode[Office Node B\nWeb+API+Jobs]
+    BNode --> BDB[(SQLite DB B)]
+    BNode <--> BRep[Replication agent B]
+  end
+
+  subgraph Remote[Hybrid WFH]
+    WFH[WFH users\nBrowser UI] --> Secure[VPN / Secure Access]
+  end
+
+  Secure --> ANode
+  Secure --> BNode
+
+  ARep <--> Hub[Sync Hub @ Rivers Edge\nEvent store + delivery tracking]
+  BRep <--> Hub
+Sequence diagram for a typical update
+mermaid
+sequenceDiagram
+  participant U as User (any office/WFH)
+  participant N as Office Node (A or B)
+  participant D as SQLite (local)
+  participant J as Local event journal
+  participant H as Sync Hub
+  participant R as Remote Office Node
+  participant RD as Remote SQLite
+
+  U->>N: Submit change (UI)
+  N->>D: Apply transaction
+  N->>J: Append event (same transaction boundary)
+  N-->>U: Success response
+
+  N->>H: Push batch of events (periodic)
+  H-->>N: Ack received
+
+  R->>H: Pull unseen events (periodic)
+  H-->>R: Deliver batch
+  R->>RD: Replay events into local SQLite
+  R->>H: Ack delivery cursor
+Ownership model and edit policy
+Your chosen ownership granularity is:
+
+League ownership default
+
+Session ownership overrides
+
+Registration ownership overrides
+
+Ownership rules
+League has a home_office_id.
+
+Session may override home_office_id (defaults to league).
+
+Registration may override home_office_id (defaults to session, otherwise league).
+
+Edit permissions
+If user’s node office == entity home office
+
+Full edit rights (subject to role permissions)
+
+If user’s node office != entity home office
+
+Default read-only for mutable core fields
+
+Allowed append-only actions:
+
+add contact history entries
+
+add notes
+
+record communication events
+
+Ownership transfer available through workflow (audited and journaled)
+
+Ownership transfer
+Transfer request created (audited)
+
+Authorized approver approves transfer (audited)
+
+Transfer is applied as an event and replicated
+
+Consistency and sync cadence
+Consistency
+Within a node: strong consistency
+
+Between nodes: eventual consistency via event replication
+
+Sync cadence: batchy but frequent
+Push: every 1–2 minutes or after a batch threshold
+
+Pull: every 1–2 minutes
+
+Backoff: exponential backoff on failures with alerting thresholds
+
+Expected user experience:
+
+Local changes are immediate.
+
+Cross-office changes appear within a few minutes.
+
+If hub is down, cross-office changes appear after the hub returns.
+
+Replication strategy
+Principle: replicate immutable events
+Every accepted change emits an append-only event.
+
+Nodes sync events through the hub.
+
+Nodes replay remote events into their SQLite database.
+
+Event requirements
+Each event includes (conceptually):
+
+event_id (globally unique)
+
+origin_office_id
+
+origin_sequence (monotonic per origin)
+
+event_time
+
+actor_id (user/service)
+
+entity_type, entity_id
+
+operation (create/update/delete/append)
+
+payload (snapshot or structured patch)
+
+idempotency_key (optional but recommended)
+
+Idempotency and ordering
+Replays must be safe:
+
+If event_id already applied, skip
+
+Ordering is enforced per origin:
+
+events are replayed in origin_sequence order for each origin office
+
+Concurrency and conflict handling
+Within a node: optimistic concurrency
+Mutable rows carry a revision marker (e.g., row_version and/or updated_at)
+
+Updates require the last-seen marker
+
+On mismatch:
+
+API returns a conflict
+
+UI offers a resolution flow (rare in practice with ownership)
+
+Across nodes: conflict avoidance first
+Conflicts are minimized by:
+
+ownership gates (league/session/registration)
+
+append-only design for high-frequency data (notes/contacts/payments)
+
+explicit ownership transfer for exceptional cases
+
+Conflict queue
+If a remote event cannot be applied automatically, it is recorded in a conflict queue for human resolution.
+
+Conflicts should be rare and operationally visible.
+
+Payments and status model
+Given your workflow (mostly full or deposit + final), prefer a ledger approach.
+
+Payment ledger
+Store payments as append-only entries tied to a registration.
+
+Derive balance and paid status from the ledger.
+
+Corrections
+Avoid editing payment rows.
+
+Use void/adjustment entries for corrections.
+
+Benefits
+Replication-safe (append-only merges)
+
+Auditable and explainable
+
+Reduces conflict risk dramatically
+
+Email ingestion model
+Per-node ingestion
+Each node can ingest from one or more mailboxes relevant to that office.
+
+Parsed outputs go into staging before being applied.
+
+Staging workflow
+Capture extracted fields + validation status + matching candidates
+
+Apply step produces journal events
+
+Applied changes replicate normally
+
+Excel integration model
+Excel is not the source of truth
+Imports go to staging, then validation, then apply (journaled).
+
+Exports are generated snapshots from SQLite.
+
+Transition support for concurrency
+Export scoped workbooks by ownership (league/session/home office)
+
+Encourage “workstream files” instead of a monolithic workbook
+
+Maintain import logs and idempotency keys to prevent double-apply
+
+Hybrid WFH behavior
+Connectivity
+Hybrid employees connect via secure access to either node (A or B).
+
+They can choose based on reachability, performance, or schedule.
+
+Ownership implications
+If a hybrid user connects to the “non-home” node for a given entity:
+
+they may be blocked from mutable edits by ownership rules
+
+they can still add append-only items
+
+they can request transfer if necessary
+
+This preserves safety while keeping flexibility.
+
+Operations, monitoring, and reliability
+Required operational views
+Per node
+
+last successful push/pull time
+
+outbound queue size
+
+inbound replay lag
+
+failed replay count
+
+Hub
+
+backlog per node
+
+delivery/ack cursors
+
+event ingestion rate
+
+error rates and retry counts
+
+Outage behavior
+Hub down:
+
+nodes continue operating locally
+
+events queue for later delivery
+
+Node down:
+
+that office is impacted locally
+
+other node continues
+
+hub retains events until the node returns
+
+Backup and recovery
+Node backups
+Perform periodic SQLite backups compatible with WAL usage.
+
+Restore procedure:
+
+restore SQLite snapshot
+
+replay missing events from hub to catch up
+
+Hub backups
+Hub event store is critical.
+
+Back up hub frequently and validate restore procedures.
+
+Implementation checklist of schema-level additions
+These are conceptual requirements (exact naming is implementation detail).
+
+Ownership fields
+Leagues: home_office_id
+
+Sessions: home_office_id (nullable override)
+
+Registrations: home_office_id (nullable override)
+
+Row revision markers
+row_version and/or updated_at on mutable tables
+
+Event journal
+append-only local journal table on each node
+
+hub-side event store + delivery tracking tables
+
+Staging tables
+email staging + validation
+
+Excel staging + validation
+
+Conflict queue
+storage for non-applicable events + resolution metadata
+
+Configuration defaults for this deployment
+Offices: 2 nodes (A and B)
+
+Hub: Rivers Edge office
+
+Sync cadence: push/pull every 1–2 minutes
+
+Ownership granularity: league default + session override + registration override
+
+WFH routing: users can connect to either node
