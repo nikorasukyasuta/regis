@@ -1,0 +1,101 @@
+CREATE TABLE IF NOT EXISTS `individual_registration` (
+	`id` integer primary key NOT NULL UNIQUE,
+	`parent_name` INTEGER NOT NULL,
+	`player_name` TEXT NOT NULL,
+	`gender` INTEGER NOT NULL,
+	`tshirt_size` INTEGER NOT NULL,
+	`volunteer_coach` INTEGER NOT NULL,
+	`comments` TEXT,
+	`returning_player` INTEGER NOT NULL,
+	`competition_level` INTEGER NOT NULL,
+	`birth_date` TEXT NOT NULL,
+	`league` INTEGER NOT NULL,
+	`sport` INTEGER NOT NULL,
+	`session` INTEGER NOT NULL,
+	`registration_status` INTEGER NOT NULL UNIQUE,
+FOREIGN KEY(`parent_name`) REFERENCES `customers`(`id`),
+FOREIGN KEY(`tshirt_size`) REFERENCES `tshirt_sizes`(`id`),
+FOREIGN KEY(`competition_level`) REFERENCES `competition_levels`(`id`),
+FOREIGN KEY(`league`) REFERENCES `leagues`(`id`),
+FOREIGN KEY(`session`) REFERENCES `sessions`(`id`),
+FOREIGN KEY(`registration_status`) REFERENCES `registration_status`(`id`)
+);
+CREATE TABLE IF NOT EXISTS `customers` (
+	`id` integer primary key NOT NULL UNIQUE,
+	`first_name` TEXT NOT NULL,
+	`last_name` TEXT NOT NULL,
+	`primary_phone` TEXT NOT NULL,
+	`alt_phone` TEXT NOT NULL,
+	`email` TEXT NOT NULL UNIQUE,
+	`address` INTEGER,
+FOREIGN KEY(`address`) REFERENCES `address`(`id`)
+);
+CREATE TABLE IF NOT EXISTS `address` (
+	`id` integer primary key NOT NULL UNIQUE,
+	`address` TEXT NOT NULL,
+	`city` TEXT NOT NULL,
+	`state` TEXT NOT NULL,
+	`zip_code` INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS `sessions` (
+	`id` integer primary key NOT NULL UNIQUE,
+	`session` TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS `team_registration` (
+	`id` integer primary key NOT NULL UNIQUE,
+	`team_name` TEXT NOT NULL,
+	`gender` INTEGER NOT NULL,
+	`coach` INTEGER NOT NULL,
+	`team_color` TEXT NOT NULL,
+	`alt_coach` INTEGER NOT NULL,
+	`comments` TEXT,
+	`league` INTEGER NOT NULL,
+	`competition_level` INTEGER NOT NULL,
+	`record` TEXT,
+	`session` INTEGER NOT NULL,
+	`block_out_dates` TEXT,
+	`registration_status` INTEGER NOT NULL UNIQUE,
+FOREIGN KEY(`coach`) REFERENCES `customers`(`id`),
+FOREIGN KEY(`alt_coach`) REFERENCES `customers`(`id`),
+FOREIGN KEY(`league`) REFERENCES `leagues`(`id`),
+FOREIGN KEY(`competition_level`) REFERENCES `competition_levels`(`id`),
+FOREIGN KEY(`session`) REFERENCES `sessions`(`id`),
+FOREIGN KEY(`registration_status`) REFERENCES `registration_status`(`id`)
+);
+CREATE TABLE IF NOT EXISTS `registration_status` (
+	`id` integer primary key NOT NULL UNIQUE,
+	`date_registered` REAL NOT NULL,
+	`balance_due` REAL NOT NULL,
+	`balance_paid` REAL,
+	`date_balance_paid` INTEGER,
+	`payment_method` TEXT,
+	`date_last_contacted` INTEGER,
+FOREIGN KEY(`date_last_contacted`) REFERENCES `contact_status`(`id`)
+);
+CREATE TABLE IF NOT EXISTS `contact_status` (
+	`id` integer primary key NOT NULL UNIQUE,
+	`registration_id` INTEGER NOT NULL,
+	`date_contacted` REAL NOT NULL,
+	`contact_status` TEXT NOT NULL,
+	`contact_notes` TEXT,
+FOREIGN KEY(`registration_id`) REFERENCES `registration_status`(`id`)
+);
+CREATE TABLE IF NOT EXISTS `leagues` (
+	`id` integer primary key NOT NULL UNIQUE,
+	`name` TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS `tshirt_sizes` (
+	`id` integer primary key NOT NULL UNIQUE,
+	`size` TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS `competition_levels` (
+	`id` integer primary key NOT NULL UNIQUE,
+	`level` TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS `registration_notes` (
+	`id` integer primary key NOT NULL UNIQUE,
+	`registration_id` INTEGER NOT NULL,
+	`note` TEXT NOT NULL,
+	`created_at` REAL NOT NULL,
+FOREIGN KEY(`registration_id`) REFERENCES `registration_status`(`id`)
+);
