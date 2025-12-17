@@ -1,0 +1,14 @@
+“I’m building a locally hosted full‑stack app using SQLite, transitioning users from Excel, with email ingestion, audit logging, and a future centralized or replicated architecture. We previously designed a centralized SQLite‑behind‑API model with office‑level nodes and replication.”
+
+
+
+
+with architecture.md 
+
+Split this into modular architecture sections
+
+Generate Mermaid diagrams inline
+
+Produce a developer implementation checklist
+
+Or create a non‑technical executive summary
