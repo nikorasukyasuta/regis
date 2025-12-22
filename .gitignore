@@ -1,0 +1,36 @@
+# Security 
+# Environment variables
+.env
+.env.local
+.env.production
+
+
+# API Keys
+config/secrets.yml
+api-keys.json
+
+# Certificates 
+*.pem
+*.key
+
+
+# Personal IDE Settings
+.vscode/
+.vscode/settings.json
+
+# Project dependencies
+node_modules/
+vendor/
+# Build output
+dist/
+build/
+
+# Specific and clear
+*.log
+
+# Use wildcards wisely
+**/target/
+# Group related patterns
+*.tmp
+*.cache
+*.bak

@@ -181,7 +181,7 @@ Onboarding documentation
 
 Excel transition guidance
 
-User training
+User training   
 
 Post‑deployment monitoring
 

@@ -1,0 +1,14 @@
+---
+title: UI Data Flow (Interactive)
+---
+flowchart LR
+    User[User]
+    UI[Frontend UI]
+    API[Backend Service]
+    DB[(SQLite)]
+    Audit[Audit Records]
+
+    User -- "performs action" --> UI
+    UI -- "sends request" --> API
+    API -- "query/update data" --> DB
+    API -- "writes audit log" --> Audit

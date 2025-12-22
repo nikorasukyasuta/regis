@@ -1,6 +1,6 @@
+```mermaid
 ---
----
-title: High-Level Systems Overview
+title: High-Level-Systems-Overview
 ---
 flowchart LR
     UI@{ shape: curv-trap, label: "Frontend UI"}
@@ -28,9 +28,10 @@ flowchart LR
     %% Optional: return lines for retry or notification (not shown for clarity)
 
     %% (Dashed "failure" lines show error handling for each transfer)
+```
 ![High Level Overview](../images/High-Level.svg)
 
-
+```mermaid
 ---
 title: UI Data Flow (Interactive)
 ---
@@ -45,9 +46,9 @@ flowchart LR
     UI -- "sends request" --> API
     API -- "query/update data" --> DB
     API -- "writes audit log" --> Audit
-
+```
 ![UI Data Flow](../images/UI-Data.svg)
-
+```mermaid
 ---
 title: Excel Import Flowcharts
 ---
@@ -67,11 +68,12 @@ flowchart LR
     API2 -- "Log Entry" --> Audit2
     API2 -- "Conflict ✖" --> Review2
     Review2 -- "Resolve & re-submit" --> API2
-
+```
 ![Excel Import](../images/Excel-Import.svg)
-
+```mermaid
 ---
 title: Email Ingestion Flow (Improved)
+id: 18ea4be9-b598-4936-8be0-ea08c690351b
 ---
 flowchart LR
     Start{{"Start"}}
@@ -91,5 +93,7 @@ flowchart LR
     Validation -- "Log Action" --> Audit
     Validation -- "Ambiguous" --> Review
     Review -- "Resolved/Clarified" --> Validation
-
+```
 ![Email Ingestion](../images/Email-Ingestion.svg)
+
+This is just a test
