@@ -1,0 +1,22 @@
+---
+title: Email Ingestion Flow (Improved)
+id: 18ea4be9-b598-4936-8be0-ea08c690351b
+---
+flowchart LR
+    Start{{"Start"}}
+    EmailIn["/Incoming Email/"]
+    Parser["Parse Email"]
+    Staging["Stage Parsed Data"]
+    Validation{{"Validate & Classify (Back-End)"}}
+    DB[(SQLite)]
+    Audit[(Audit Log)]
+    Review("/Manual Review/")
+
+    Start --> EmailIn
+    EmailIn -- "Receive" --> Parser
+    Parser -- "Extract & Format" --> Staging
+    Staging -- "Place in Queue" --> Validation
+    Validation -- "Valid" --> DB
+    Validation -- "Log Action" --> Audit
+    Validation -- "Ambiguous" --> Review
+    Review -- "Resolved/Clarified" --> Validation

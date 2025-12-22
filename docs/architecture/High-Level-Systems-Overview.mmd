@@ -1,0 +1,29 @@
+---
+title: High-Level Systems Overview
+---
+flowchart LR
+    UI@{ shape: curv-trap, label: "Frontend UI"}
+    API[Backend Service Layer]
+    DB[(SQLite Database)]
+    Excel@{ shape: doc, label: "Excel Files" }
+    Email@{ shape: docs, label: "Email System"}
+    Staging[Staging Tables]
+    Error{{Error Handler}}
+
+    UI --|API Call|--> API
+    API --|SQL Query|--> DB
+    Excel --|File Upload|--> Staging
+    Email --|Email Import|--> Staging
+    Staging --|Batch Submission|--> API
+
+    %% Error handling for each transfer type
+    UI -. failure .-> Error
+    API -. failure .-> Error
+    Excel -. failure .-> Error
+    Email -. failure .-> Error
+    Staging -. failure .-> Error
+    DB -. failure .-> Error
+
+    %% Optional: return lines for retry or notification (not shown for clarity)
+
+    %% (Dashed "failure" lines show error handling for each transfer)

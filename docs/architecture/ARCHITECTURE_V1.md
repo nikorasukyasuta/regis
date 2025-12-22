@@ -95,6 +95,8 @@ The system includes (at minimum):
 - **Validation at service layer**
 - **No partial writes:** multi-table operations are transactional
 - **Preferred append-only patterns** for notes and communication history
+- Soft‑deleted records are never modified except for restoration
+
 
 ### 6.3 Deletion policy
 - **Policy:** [SOFT DELETE ONLY]
@@ -111,6 +113,12 @@ Every accepted change must record:
 - **Timestamp**
 - **Entity and keys**
 - **Before/after state:** DIFF
+
+- Deletion events (soft deletes) record:
+  - Timestamp
+  - Actor
+  - Reason (when provided)
+
 
 Audit records are immutable.
 

@@ -1,0 +1,19 @@
+---
+title: Excel Import Flowcharts
+---
+%% Improved, detailed Excel Import Flow
+flowchart LR
+    Start{{"Start"}}
+    ExcelFile[/Excel File/]
+    Staging2["Parse & Stage Data"]
+    API2{{"Validation Back-End Services"}}
+    DB2[(SQLite)]
+    Audit2[(Audit Log)]
+    Review2(["Manual Review"])
+    Start --> ExcelFile
+    ExcelFile -- "Upload .xlsx" --> Staging2
+    Staging2 -- "Parsed rows" --> API2
+    API2 -- "Valid ✔" --> DB2
+    API2 -- "Log Entry" --> Audit2
+    API2 -- "Conflict ✖" --> Review2
+    Review2 -- "Resolve & re-submit" --> API2
